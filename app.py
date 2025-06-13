@@ -82,24 +82,31 @@ def normalize_boxes(boxes, width, height):
 
 def predict_entities(image, uploaded_file_name):
     words, boxes = ocr_space_parse(image, uploaded_file_name)
-    if not words:
+
+    if not words or not boxes:
+        st.warning(f" OCR returned no text for {uploaded_file_name}")
         return []
 
     norm_boxes = normalize_boxes(boxes, *image.size)
+
+    # Encode inputs for LayoutLMv3
     encodings = processor(image, words=words, boxes=norm_boxes, return_tensors="pt", truncation=True)
-    
+
     with torch.no_grad():
         outputs = model(**encodings)
-    predictions = torch.argmax(outputs.logits, dim=-1)
 
-    tokens = processor.tokenizer.convert_ids_to_tokens(encodings["input_ids"][0])
-    labels = [model.config.id2label[p.item()] for p in predictions[0]]
+    logits = outputs.logits
+    predictions = torch.argmax(logits, dim=2)
 
-    results = []
-    for token, label in zip(tokens, labels):
-        if token not in processor.tokenizer.all_special_tokens and label != "O":
-            results.append((token.replace("▁", ""), label))
-    return results
+    # Map predictions to labels
+    predicted_labels = [model.config.id2label[p.item()] for p in predictions[0]]
+
+    final_output = []
+    for word, label in zip(words, predicted_labels):
+        final_output.append((word, label))
+
+    return final_output
+
 
 # Streamlit UI
 st.title(" OCR Extractor ")
@@ -117,6 +124,11 @@ if uploaded_files:
         entities = predict_entities(image, file.name)
         st.write(entities)
 
+        if entities:
+            df = pd.DataFrame(entities, columns=["Word", "Entity"])
+            st.dataframe(df)
+        else:
+            st.error("No entities found or OCR failed.")
         grouped = {}
         for word, label in entities:
             key = label[2:] if '-' in label else label
