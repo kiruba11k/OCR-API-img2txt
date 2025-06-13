@@ -15,30 +15,37 @@ model.eval().to("cpu")
 OCR_API_KEY = st.secrets["OCR_API_KEY"]
 
 def ocr_space_parse(image: Image.Image, uploaded_file_name="image.jpg"):
-    # Convert image to bytes
-    buf = io.BytesIO()
-    image.save(buf, format="JPEG")
-    buf.seek(0)
-
-    # Ensure filename has correct extension
+    # Ensure filename has valid image extension
     if not uploaded_file_name.lower().endswith((".jpg", ".jpeg", ".png")):
-        uploaded_file_name += ".jpg"  # Fallback
+        uploaded_file_name += ".jpg"  # Default fallback
+
+    # Convert image to buffer (JPEG-encoded)
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG")  # Ensure it is actually JPEG format
+    buffer.seek(0)
+
+    # Manually set file tuple (filename, fileobj, content_type)
+    files = {
+        'filename': (uploaded_file_name, buffer, 'image/jpeg')
+    }
+
+    data = {
+        'apikey': OCR_API_KEY,
+        'isOverlayRequired': True,
+        'language': 'eng',
+        'scale': True,
+    }
 
     response = requests.post(
         'https://api.ocr.space/parse/image',
-        files={'filename': (uploaded_file_name, buf, 'image/jpeg')},
-        data={
-            'apikey': OCR_API_KEY,
-            'isOverlayRequired': True,
-            'language': 'eng',
-            'scale': True,
-        }
+        files=files,
+        data=data
     )
 
     result = response.json()
 
     if "ParsedResults" not in result:
-        st.error("OCR failed. Full response:")
+        st.error("❌ OCR failed. Full response:")
         st.json(result)
         return [], []
 
@@ -96,14 +103,17 @@ def predict_entities(image):
 
 # Streamlit UI
 st.title(" OCR Extractor ")
-uploaded_files = st.file_uploader("Upload Resume Image(s)", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
+uploaded_files = st.file_uploader("Upload images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
 if uploaded_files:
     all_data = []
     for file in uploaded_files:
         image = Image.open(file).convert("RGB")
-        st.image(image, caption=file.name, use_column_width=True)
+        st.image(image, caption=file.name)
 
+    words, boxes = ocr_space_parse(image, uploaded_file_name=file.name)
+    st.write(words)
+    
         entities = predict_entities(image, file.name)
         grouped = {}
         for word, label in entities:
