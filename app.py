@@ -45,7 +45,7 @@ def ocr_space_parse(image: Image.Image, uploaded_file_name="image.jpg"):
     result = response.json()
 
     if "ParsedResults" not in result:
-        st.error("❌ OCR failed. Full response:")
+        st.error(" OCR failed. Full response:")
         st.json(result)
         return [], []
 
@@ -80,8 +80,8 @@ def normalize_boxes(boxes, width, height):
         for x0, y0, x1, y1 in boxes
     ]
 
-def predict_entities(image):
-    words, boxes = ocr_space_parse(image)
+def predict_entities(image, uploaded_file_name):
+    words, boxes = ocr_space_parse(image, uploaded_file_name)
     if not words:
         return []
 
@@ -115,6 +115,8 @@ if uploaded_files:
         st.write(words)
     
         entities = predict_entities(image, file.name)
+        st.write(entities)
+
         grouped = {}
         for word, label in entities:
             key = label[2:] if '-' in label else label
