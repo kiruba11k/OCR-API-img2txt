@@ -111,8 +111,8 @@ if uploaded_files:
         image = Image.open(file).convert("RGB")
         st.image(image, caption=file.name)
 
-    words, boxes = ocr_space_parse(image, uploaded_file_name=file.name)
-    st.write(words)
+        words, boxes = ocr_space_parse(image, uploaded_file_name=file.name)
+        st.write(words)
     
         entities = predict_entities(image, file.name)
         grouped = {}
