@@ -107,7 +107,6 @@ def predict_entities(image, uploaded_file_name):
 
     return final_output
 
-
 # Streamlit UI
 st.title(" OCR Extractor ")
 uploaded_files = st.file_uploader("Upload images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
