@@ -14,16 +14,19 @@ model.eval().to("cpu")
 
 OCR_API_KEY = st.secrets["OCR_API_KEY"]
 
-def ocr_space_parse(image: Image.Image):
+def ocr_space_parse(image: Image.Image, uploaded_file_name="image.jpg"):
     # Convert image to bytes
     buf = io.BytesIO()
     image.save(buf, format="JPEG")
     buf.seek(0)
 
-    # Call OCR.Space API
+    # Ensure filename has correct extension
+    if not uploaded_file_name.lower().endswith((".jpg", ".jpeg", ".png")):
+        uploaded_file_name += ".jpg"  # Fallback
+
     response = requests.post(
         'https://api.ocr.space/parse/image',
-        files={'filename': buf},
+        files={'filename': (uploaded_file_name, buf, 'image/jpeg')},
         data={
             'apikey': OCR_API_KEY,
             'isOverlayRequired': True,
@@ -34,9 +37,8 @@ def ocr_space_parse(image: Image.Image):
 
     result = response.json()
 
-    # DEBUG PRINT
     if "ParsedResults" not in result:
-        st.error(" OCR failed. Full response:")
+        st.error("OCR failed. Full response:")
         st.json(result)
         return [], []
 
@@ -102,8 +104,7 @@ if uploaded_files:
         image = Image.open(file).convert("RGB")
         st.image(image, caption=file.name, use_column_width=True)
 
-        entities = predict_entities(image)
-
+        entities = predict_entities(image, file.name)
         grouped = {}
         for word, label in entities:
             key = label[2:] if '-' in label else label
