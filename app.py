@@ -12,7 +12,7 @@ processor = AutoProcessor.from_pretrained("Kiruba11/layoutlmv3-resume-ner2")
 model = AutoModelForTokenClassification.from_pretrained("Kiruba11/layoutlmv3-resume-ner2")
 model.eval().to("cpu")
 
-OCR_API_KEY = "YOUR_OCR_SPACE_API_KEY"  
+OCR_API_KEY = st.secrets["OCR_API_KEY"]
 
 def ocr_space_parse(image: Image.Image):
     # Convert image to bytes
