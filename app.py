@@ -33,6 +33,13 @@ def ocr_space_parse(image: Image.Image):
     )
 
     result = response.json()
+
+    # DEBUG PRINT
+    if "ParsedResults" not in result:
+        st.error(" OCR failed. Full response:")
+        st.json(result)
+        return [], []
+
     parsed_text = []
     parsed_boxes = []
 
@@ -48,7 +55,9 @@ def ocr_space_parse(image: Image.Image):
                 parsed_text.append(word)
                 parsed_boxes.append([left, top, left + width, top + height])
     except Exception as e:
-        st.error(f"OCR failed: {e}")
+        st.error(f"OCR structure parsing error: {e}")
+        return [], []
+
     return parsed_text, parsed_boxes
 
 def normalize_boxes(boxes, width, height):
